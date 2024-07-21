@@ -12,7 +12,7 @@ detect_client = InferenceHTTPClient(
 )
 
 
-def show_annotations(detections, inference_image):
+def debug_show_annotations(detections, inference_image):
     # create supervision annotators
     bounding_box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
