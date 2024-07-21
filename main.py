@@ -4,6 +4,8 @@ from PIL import Image
 from PIL.ImageFile import ImageFile
 from inference_sdk import InferenceHTTPClient
 import supervision as sv
+import cv2
+import numpy as np
 
 load_dotenv()
 
@@ -38,21 +40,42 @@ def locate_empty_cards(image: ImageFile) -> sv.Detections:
     return detections
 
 
+def pil_to_cv2(pil_image):
+    # Convert PIL Image to NumPy array
+    numpy_image = np.array(pil_image)
+    # Convert RGB to BGR
+    opencv_image = cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
+    return opencv_image
+
+
+def binarize_image(cv2_image, threshold=128):
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
+    # Apply binary threshold
+    _, binary_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
+    return binary_image
+
+
 def get_empty_cards_numbers(detections: sv.Detections, image: ImageFile) -> list:
     cards_numbers = []
     print(detections)
     for coordinates in detections.xyxy:
         x0, y0, x1, y1 = coordinates
-        cropped_image = image.crop((x0, y0, x1, y1)).convert("L")
-        sv.plot_image(cropped_image)
-        card_number = infer_client.ocr_image(cropped_image)
+        # cropped_image = image.crop((x0, y0, x1, y1)).convert("L")
+
+        cropped_image = image.crop((x0, y0, x1, y1))
+        cv2_image = pil_to_cv2(cropped_image)
+        binary_image = binarize_image(cv2_image)
+
+        sv.plot_image(binary_image)
+        card_number = infer_client.ocr_image(binary_image)
         cards_numbers.append(card_number)
         print(card_number)
 
     return cards_numbers
 
 
-image_file = "imgs/test/enaldinho_16.jpeg"
+image_file = "imgs/test/enaldinho_18.jpeg"
 image = Image.open(image_file)
 empty_cards = locate_empty_cards(image)
 get_empty_cards_numbers(empty_cards, image)
